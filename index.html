@@ -1,83 +1,232 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>แอปแปลงรูปภาพเป็นตาราง (Tesseract.js)</title>
+  <title>Image to Table | Professional OCR</title>
   
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   
   <style>
+    /* Global Resets and Modern Theme Variables */
+    :root {
+      --bg-color: #0d1117;
+      --box-bg-color: rgba(22, 27, 34, 0.7);
+      --primary-color: #1a73e8;
+      --success-color: #2ea44f;
+      --error-color: #f85149;
+      --loading-color: #f29900;
+      --text-color: #c9d1d9;
+      --heading-color: #f0f6fc;
+      --border-color: rgba(240, 246, 252, 0.15);
+      --glow-effect: 0 0 20px rgba(26, 115, 232, 0.4);
+      --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
     body {
-      font-family: 'Sarabun', sans-serif;
-      background-color: #f0f2f5;
+      background-color: var(--bg-color);
+      font-family: var(--font-family);
       display: flex;
       justify-content: center;
-      padding: 20px;
+      padding: 40px 20px;
+      min-height: 100vh;
       margin: 0;
+      box-sizing: border-box;
     }
-    .container {
-      background-color: white;
+
+    /* Main container with glassmorphism */
+    .main-container {
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .content-box {
+      background-color: var(--box-bg-color);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    h1 {
+      color: var(--heading-color);
+      font-size: 28px;
+      text-align: center;
+      margin-top: 0;
+      font-weight: bold;
+      text-shadow: var(--glow-effect);
+    }
+    
+    h1 span {
+      color: var(--primary-color);
+    }
+
+    p {
+      color: var(--text-color);
+      text-align: center;
+      font-size: 14px;
+      margin-bottom: 30px;
+      opacity: 0.8;
+    }
+
+    /* Upload Section */
+    .upload-section {
+      margin-bottom: 25px;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
+    .custom-file-label {
+      display: block;
+      border: 2px dashed var(--border-color);
+      color: var(--text-color);
+      font-size: 14px;
+      text-align: center;
       padding: 30px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 600px;
+      cursor: pointer;
+      transition: 0.3s ease;
+      opacity: 0.7;
     }
-    h2 { color: #1a73e8; margin-top: 0; text-align: center; }
-    p { text-align: center; color: #5f6368; margin-bottom: 25px; font-size: 14px; }
-    .upload-section {
-      border: 2px dashed #dadce0;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    input[type="file"] { margin-bottom: 15px; width: 100%; }
-    button {
-      width: 100%; padding: 12px; font-size: 16px; border: none; border-radius: 6px;
-      cursor: pointer; font-weight: bold; transition: 0.2s;
-    }
-    #processBtn { background-color: #1a73e8; color: white; }
-    #processBtn:hover { background-color: #1557b0; }
-    #processBtn:disabled { background-color: #ccc; cursor: not-allowed; }
-    #downloadBtn { background-color: #34a853; color: white; margin-top: 15px; }
-    #downloadBtn:hover { background-color: #2d8e47; }
-    #statusMessage { text-align: center; font-size: 15px; margin-top: 15px; font-weight: bold; }
-    .success { color: #1e8e3e; }
-    .error { color: #d93025; }
-    .loading { color: #f29900; }
     
-    /* ตกแต่งตารางพรีวิว */
-    .table-responsive { overflow-x: auto; margin-top: 20px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
+    .custom-file-label:hover {
+      border-color: var(--primary-color);
+      opacity: 1;
+      box-shadow: var(--glow-effect);
+    }
+
+    /* Buttons */
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s ease;
+      outline: none;
+    }
+
+    #processBtn {
+      background-color: var(--primary-color);
+      color: var(--heading-color);
+      margin-bottom: 10px;
+    }
+    
+    #processBtn:hover {
+      background-color: #1557b0;
+      box-shadow: var(--glow-effect);
+    }
+
+    #processBtn:disabled {
+      background-color: rgba(110, 118, 129, 0.3);
+      color: var(--text-color);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #downloadBtn {
+      background-color: var(--success-color);
+      color: var(--heading-color);
+      margin-top: 15px;
+    }
+    
+    #downloadBtn:hover {
+      background-color: #2a9244;
+      box-shadow: 0 0 20px rgba(46, 164, 79, 0.4);
+    }
+
+    /* Status Messages */
+    #statusMessage {
+      text-align: center;
+      font-size: 15px;
+      margin-top: 15px;
+      font-weight: bold;
+      color: var(--text-color);
+    }
+
+    .success { color: var(--success-color); }
+    .error { color: var(--error-color); }
+    .loading { color: var(--loading-color); }
+    
+    /* Table Preview Area */
+    .table-preview-area {
+      margin-top: 30px;
+      max-height: 400px;
+      overflow-y: auto;
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      color: var(--text-color);
+    }
+    
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 10px;
+      text-align: left;
+    }
+    
+    th {
+      background-color: rgba(110, 118, 129, 0.1);
+      font-weight: bold;
+    }
+    
+    tr:nth-child(even) {
+      background-color: rgba(110, 118, 129, 0.05);
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h2>📊 แอปแกะข้อความ (ใช้งานฟรีตลอดชีพ)</h2>
-    <p>ประมวลผลด้วย Tesseract.js (ข้อมูลไม่ถูกส่งออกจากเครื่องคุณ ปลอดภัย 100%)</p>
-    
-    <div class="upload-section">
-      <input type="file" id="fileInput" accept="image/*">
-      <button id="processBtn" onclick="startOCR()">🚀 เริ่มดึงข้อความ</button>
-    </div>
-    
-    <div id="statusMessage"></div>
-    
-    <button id="downloadBtn" style="display:none;" onclick="downloadCSV()">📥 ดาวน์โหลดไฟล์ CSV</button>
-    
-    <div class="table-responsive">
-      <div id="tablePreview"></div>
+  <div class="main-container">
+    <div class="content-box">
+      <h1><span>Image</span> to <span>Table</span></h1>
+      <p>Securely extract data directly in your browser. No server required.</p>
+      
+      <div class="upload-section">
+        <input type="file" id="fileInput" accept="image/*" onchange="fileSelected()">
+        <label for="fileInput" class="custom-file-label">
+          <span id="fileStatus">Click or Drag Image Here</span>
+        </label>
+      </div>
+      
+      <button id="processBtn" onclick="startOCR()">🚀 Start Extraction</button>
+      
+      <div id="statusMessage"></div>
+      
+      <button id="downloadBtn" style="display:none;" onclick="downloadCSV()">📥 Download CSV File</button>
+      
+      <div class="table-preview-area">
+        <div id="tablePreview"></div>
+      </div>
     </div>
   </div>
 
   <script>
     let csvDataString = "";
 
+    // Update the label when a file is selected
+    function fileSelected() {
+      const fileInput = document.getElementById('fileInput');
+      const fileStatus = document.getElementById('fileStatus');
+      if (fileInput.files.length > 0) {
+        fileStatus.innerText = "Selected File: " + fileInput.files[0].name;
+      } else {
+        fileStatus.innerText = "Click or Drag Image Here";
+      }
+    }
+
+    // Main OCR Function using Tesseract.js
     async function startOCR() {
       const fileInput = document.getElementById('fileInput');
       const statusDiv = document.getElementById('statusMessage');
@@ -86,29 +235,28 @@
       const previewDiv = document.getElementById('tablePreview');
 
       if (fileInput.files.length === 0) {
-        alert("กรุณาเลือกรูปภาพก่อนครับ");
+        alert("Please select an image file first.");
         return;
       }
 
       const file = fileInput.files[0];
 
-      // รีเซ็ตหน้าจอ
+      // Reset UI state
       processBtn.disabled = true;
       downloadBtn.style.display = "none";
       previewDiv.innerHTML = "";
       statusDiv.className = "loading";
-      statusDiv.innerText = "⏳ กำลังเตรียมระบบ (อาจใช้เวลาโหลดข้อมูลภาษาไทยในครั้งแรก)...";
+      statusDiv.innerText = "⏳ Initializing engine (first time may take longer to download languages)...";
 
       try {
-        // เริ่มกระบวนการ OCR ด้วย Tesseract.js
+        // Run Tesseract
         const result = await Tesseract.recognize(
           file,
-          'tha+eng', // กำหนดให้อ่านภาษาไทยและอังกฤษ
+          'tha+eng', // Load Thai and English models
           {
             logger: m => {
-              // แสดง % ความคืบหน้าบนหน้าจอ
               if (m.status === 'recognizing text') {
-                statusDiv.innerText = `⏳ กำลังแกะข้อความ: ${Math.round(m.progress * 100)}%`;
+                statusDiv.innerText = `⏳ Extracting text: ${Math.round(m.progress * 100)}%`;
               }
             }
           }
@@ -118,43 +266,41 @@
         
         if (extractedText.trim() === "") {
           statusDiv.className = "error";
-          statusDiv.innerText = "❌ ไม่พบข้อความในรูปภาพ โปรดลองรูปที่ชัดเจนกว่านี้";
+          statusDiv.innerText = "❌ No text found in the image. Please try a clearer image.";
           processBtn.disabled = false;
           return;
         }
 
-        // ประมวลผลข้อความดิบให้เป็นตาราง
+        // Process raw text into table array
         processTextToTable(extractedText);
 
         statusDiv.className = "success";
-        statusDiv.innerText = "✅ แกะข้อความสำเร็จ!";
+        statusDiv.innerText = "✅ Extraction successful!";
         downloadBtn.style.display = "block";
 
       } catch (error) {
         statusDiv.className = "error";
-        statusDiv.innerText = "❌ เกิดข้อผิดพลาด: " + error.message;
+        statusDiv.innerText = "❌ Error: " + error.message;
       }
 
       processBtn.disabled = false;
     }
 
+    // Format the extracted text into CSV and HTML Table
     function processTextToTable(text) {
-      // 1. แยกบรรทัด
       const lines = text.split('\n');
       let dataArray = [];
       let maxCols = 0;
 
-      // 2. แยกคอลัมน์ด้วยช่องว่าง
       for (let i = 0; i < lines.length; i++) {
         let rowText = lines[i].trim();
         if (rowText !== "") {
-          let columns = rowText.split(/\s+/); // แยกคำด้วย Space หรือ Tab
+          let columns = rowText.split(/\s+/);
           if (columns.length > maxCols) maxCols = columns.length;
           dataArray.push(columns);
         }
       }
 
-      // 3. ปรับ Array ให้เป็นตารางสี่เหลี่ยมสมบูรณ์
       dataArray = dataArray.map(row => {
         while (row.length < maxCols) {
           row.push("");
@@ -162,16 +308,13 @@
         return row;
       });
 
-      // 4. สร้าง HTML Table และ CSV String
-      let csvContent = "\uFEFF"; // รหัสพิเศษสำหรับ Excel ภาษาไทย
+      let csvContent = "\uFEFF"; // BOM for Excel Thai support
       let tableHTML = "<table><tbody>";
 
       dataArray.forEach(rowArray => {
-        // ต่อข้อความ CSV
         let rowCSV = rowArray.map(item => `"${item.replace(/"/g, '""')}"`).join(",");
         csvContent += rowCSV + "\r\n";
         
-        // สร้างตาราง HTML พรีวิว
         tableHTML += "<tr>";
         rowArray.forEach(cell => {
           tableHTML += "<td>" + cell + "</td>";
@@ -184,6 +327,7 @@
       document.getElementById('tablePreview').innerHTML = tableHTML;
     }
 
+    // Trigger CSV download
     function downloadCSV() {
       const blob = new Blob([csvDataString], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
