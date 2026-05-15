@@ -1,19 +1,199 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JCHI</title>
-<style>
-  html, body, iframe {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-    border: none;
-  }
-</style>
+  <title>แอปแปลงรูปภาพเป็นตาราง (Tesseract.js)</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 600px;
+    }
+    h2 { color: #1a73e8; margin-top: 0; text-align: center; }
+    p { text-align: center; color: #5f6368; margin-bottom: 25px; font-size: 14px; }
+    .upload-section {
+      border: 2px dashed #dadce0;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input[type="file"] { margin-bottom: 15px; width: 100%; }
+    button {
+      width: 100%; padding: 12px; font-size: 16px; border: none; border-radius: 6px;
+      cursor: pointer; font-weight: bold; transition: 0.2s;
+    }
+    #processBtn { background-color: #1a73e8; color: white; }
+    #processBtn:hover { background-color: #1557b0; }
+    #processBtn:disabled { background-color: #ccc; cursor: not-allowed; }
+    #downloadBtn { background-color: #34a853; color: white; margin-top: 15px; }
+    #downloadBtn:hover { background-color: #2d8e47; }
+    #statusMessage { text-align: center; font-size: 15px; margin-top: 15px; font-weight: bold; }
+    .success { color: #1e8e3e; }
+    .error { color: #d93025; }
+    .loading { color: #f29900; }
+    
+    /* ตกแต่งตารางพรีวิว */
+    .table-responsive { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycbzLhc2Pw2bC9ftmdO1ZfaB_Vtr7Ui5ZAIGyblueJAs3QyvaKKqi_s_5InoG5cfjkyKa3Q/exec" allow="camera; microphone; geolocation;" width="100%" height="100%" frameborder="0"></iframe>
+
+  <div class="container">
+    <h2>📊 แอปแกะข้อความ (ใช้งานฟรีตลอดชีพ)</h2>
+    <p>ประมวลผลด้วย Tesseract.js (ข้อมูลไม่ถูกส่งออกจากเครื่องคุณ ปลอดภัย 100%)</p>
+    
+    <div class="upload-section">
+      <input type="file" id="fileInput" accept="image/*">
+      <button id="processBtn" onclick="startOCR()">🚀 เริ่มดึงข้อความ</button>
+    </div>
+    
+    <div id="statusMessage"></div>
+    
+    <button id="downloadBtn" style="display:none;" onclick="downloadCSV()">📥 ดาวน์โหลดไฟล์ CSV</button>
+    
+    <div class="table-responsive">
+      <div id="tablePreview"></div>
+    </div>
+  </div>
+
+  <script>
+    let csvDataString = "";
+
+    async function startOCR() {
+      const fileInput = document.getElementById('fileInput');
+      const statusDiv = document.getElementById('statusMessage');
+      const processBtn = document.getElementById('processBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const previewDiv = document.getElementById('tablePreview');
+
+      if (fileInput.files.length === 0) {
+        alert("กรุณาเลือกรูปภาพก่อนครับ");
+        return;
+      }
+
+      const file = fileInput.files[0];
+
+      // รีเซ็ตหน้าจอ
+      processBtn.disabled = true;
+      downloadBtn.style.display = "none";
+      previewDiv.innerHTML = "";
+      statusDiv.className = "loading";
+      statusDiv.innerText = "⏳ กำลังเตรียมระบบ (อาจใช้เวลาโหลดข้อมูลภาษาไทยในครั้งแรก)...";
+
+      try {
+        // เริ่มกระบวนการ OCR ด้วย Tesseract.js
+        const result = await Tesseract.recognize(
+          file,
+          'tha+eng', // กำหนดให้อ่านภาษาไทยและอังกฤษ
+          {
+            logger: m => {
+              // แสดง % ความคืบหน้าบนหน้าจอ
+              if (m.status === 'recognizing text') {
+                statusDiv.innerText = `⏳ กำลังแกะข้อความ: ${Math.round(m.progress * 100)}%`;
+              }
+            }
+          }
+        );
+
+        const extractedText = result.data.text;
+        
+        if (extractedText.trim() === "") {
+          statusDiv.className = "error";
+          statusDiv.innerText = "❌ ไม่พบข้อความในรูปภาพ โปรดลองรูปที่ชัดเจนกว่านี้";
+          processBtn.disabled = false;
+          return;
+        }
+
+        // ประมวลผลข้อความดิบให้เป็นตาราง
+        processTextToTable(extractedText);
+
+        statusDiv.className = "success";
+        statusDiv.innerText = "✅ แกะข้อความสำเร็จ!";
+        downloadBtn.style.display = "block";
+
+      } catch (error) {
+        statusDiv.className = "error";
+        statusDiv.innerText = "❌ เกิดข้อผิดพลาด: " + error.message;
+      }
+
+      processBtn.disabled = false;
+    }
+
+    function processTextToTable(text) {
+      // 1. แยกบรรทัด
+      const lines = text.split('\n');
+      let dataArray = [];
+      let maxCols = 0;
+
+      // 2. แยกคอลัมน์ด้วยช่องว่าง
+      for (let i = 0; i < lines.length; i++) {
+        let rowText = lines[i].trim();
+        if (rowText !== "") {
+          let columns = rowText.split(/\s+/); // แยกคำด้วย Space หรือ Tab
+          if (columns.length > maxCols) maxCols = columns.length;
+          dataArray.push(columns);
+        }
+      }
+
+      // 3. ปรับ Array ให้เป็นตารางสี่เหลี่ยมสมบูรณ์
+      dataArray = dataArray.map(row => {
+        while (row.length < maxCols) {
+          row.push("");
+        }
+        return row;
+      });
+
+      // 4. สร้าง HTML Table และ CSV String
+      let csvContent = "\uFEFF"; // รหัสพิเศษสำหรับ Excel ภาษาไทย
+      let tableHTML = "<table><tbody>";
+
+      dataArray.forEach(rowArray => {
+        // ต่อข้อความ CSV
+        let rowCSV = rowArray.map(item => `"${item.replace(/"/g, '""')}"`).join(",");
+        csvContent += rowCSV + "\r\n";
+        
+        // สร้างตาราง HTML พรีวิว
+        tableHTML += "<tr>";
+        rowArray.forEach(cell => {
+          tableHTML += "<td>" + cell + "</td>";
+        });
+        tableHTML += "</tr>";
+      });
+
+      tableHTML += "</tbody></table>";
+      csvDataString = csvContent;
+      document.getElementById('tablePreview').innerHTML = tableHTML;
+    }
+
+    function downloadCSV() {
+      const blob = new Blob([csvDataString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "extracted_table.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
 </body>
 </html>
